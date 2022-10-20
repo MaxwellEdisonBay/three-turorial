@@ -1,11 +1,8 @@
 import * as THREE from "three"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader"
 import * as dat from "dat.gui"
 
-import starsTexture from "../img/stars.jpg"
-
-const doggoUrl = new URL("../assets/doggo2.glb", import.meta.url)
+import space from "../assets/space.jpg"
 
 const renderer = new THREE.WebGLRenderer()
 
@@ -31,7 +28,7 @@ const orbits = new OrbitControls(camera, renderer.domElement)
 const axesHelper = new THREE.AxesHelper(5)
 scene.add(axesHelper)
 
-camera.position.set(-10, 50, 30)
+camera.position.set(-5, 5, 5)
 
 
 const ambientLight = new THREE.AmbientLight(0x333333)
@@ -44,7 +41,7 @@ scene.add(ambientLight)
 
 const cubeTextureLoader = new THREE.CubeTextureLoader()
 // scene.background = cubeTextureLoader.load([starsTexture, starsTexture, starsTexture, starsTexture, starsTexture, starsTexture])
-renderer.setClearColor(0xffffff, 1)
+// renderer.setClearColor(0xffffff, 1)
 
 const gui = new dat.GUI()
 
@@ -58,42 +55,36 @@ const options = {
 
 }
 
-const textureLoader = new THREE.TextureLoader()
+const uniforms = {
+    u_time: { type: 'f', value: 0.0 },
+    u_resolution: { type: 'v2', value: new THREE.Vector2(window.innerWidth, window.innerHeight).multiplyScalar(window.devicePixelRatio) },
+    u_mouse: { type: 'v2', value: new THREE.Vector2(0.0, 0.0) },
+    image: {type: 't', value: new THREE.TextureLoader().load(space)}
+}
 
-const assetLoader = new GLTFLoader()
-
-const grid = new THREE.GridHelper(30, 30)
-scene.add(grid)
-
-
-let mixer;
-assetLoader.load(doggoUrl.href, (gltf) => {
-    const model = gltf.scene
-    scene.add(model)
-    mixer = new THREE.AnimationMixer(model)
-    const clips = gltf.animations
-    // const clip = THREE.AnimationClip.findByName(clips, "HeadAction")
-    // const action = mixer.clipAction(clip)
-    // action.play()
-    clips.forEach((clip) => {
-        const action = mixer.clipAction(clip)
-        action.play()
-    })
-
-}, undefined, (error) => {
-    console.error(error)
+window.addEventListener('mousemove', (e) => {
+    uniforms.u_mouse.value.set(e.screenX / window.innerWidth, 1 - e.screenY / window.innerHeight)
 })
+
+const geometry = new THREE.PlaneGeometry(10, 10, 30, 30)
+const material = new THREE.ShaderMaterial({
+    vertexShader: document.getElementById("vertexShader").textContent,
+    fragmentShader: document.getElementById("fragmentShader").textContent,
+    // wireframe: true,
+    uniforms,
+})
+const mesh = new THREE.Mesh(geometry, material)
+scene.add(mesh)
 
 orbits.update()
 
 const clock = new THREE.Clock()
 
-function animate(time) {
-    // console.log(mixer)
-    mixer?.update(clock.getDelta())
+function animate() {
+
+    uniforms.u_time.value = clock.getElapsedTime()
     renderer.render(scene, camera)
 }
-
 
 renderer.setAnimationLoop(animate)
 
